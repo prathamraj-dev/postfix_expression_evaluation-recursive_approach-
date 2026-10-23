@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recursive Postfix Evaluator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#edf1f6;--sf:#fff;--ink:#14202e;--mut:#5b6b7c;--ln:#cfd8e3;--b:#7c3aed;--bs:#ede4fe;--a:#0d9488;--as:#d9f4f0;--cur:#f59e0b;--curs:#fff0cf;--ok:#15803d;--err:#b91c1c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e151d;--sf:#17212c;--ink:#e6edf5;--mut:#93a4b6;--ln:#2b3a4a;--bs:#2c2150;--as:#0f3a38;--curs:#4a3508;--b:#a78bfa;--a:#2dd4bf;--ok:#4ade80;--err:#f87171;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e151d;--sf:#17212c;--ink:#e6edf5;--mut:#93a4b6;--ln:#2b3a4a;--bs:#2c2150;--as:#0f3a38;--curs:#4a3508;--b:#a78bfa;--a:#2dd4bf;--ok:#4ade80;--err:#f87171;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Figtree,system-ui,sans-serif}
+.w{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.6rem;margin:0 0 2px;letter-spacing:-.01em}
+.sub{color:var(--mut);margin:0 0 16px}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:14px;margin-bottom:14px}
+h2{font-size:.95rem;margin:0 0 10px;color:var(--mut);font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input[type=text]{flex:1;min-width:200px;font:600 1rem "JetBrains Mono",monospace;padding:9px 11px;border:1px solid var(--ln);border-radius:8px;background:var(--bg);color:var(--ink)}
+button,select{font:600 .9rem Figtree,sans-serif;padding:8px 13px;border-radius:8px;border:1px solid var(--ln);background:var(--sf);color:var(--ink);cursor:pointer}
+button.p{background:var(--ink);color:var(--sf);border-color:var(--ink)}
+button:disabled{opacity:.4;cursor:default}
+:focus-visible{outline:3px solid var(--cur);outline-offset:2px}
+.err{color:var(--err);font-weight:600;margin-top:8px}
+.tape{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px}
+.tk{min-width:54px;text-align:center;border:2px solid var(--ln);border-radius:8px;padding:6px 4px;background:var(--bg);transition:.2s}
+.tk b{display:block;font:700 1.1rem "JetBrains Mono",monospace}
+.tk i{font-style:normal;font-size:.72rem;color:var(--mut)}
+.tk.read{opacity:.45}
+.tk.cur{opacity:1;border-color:var(--cur);background:var(--curs);transform:translateY(-3px)}
+.hint{font-size:.82rem;color:var(--mut)}
+.grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.tree{overflow-x:auto;padding-bottom:6px}
+.nd{display:flex;flex-direction:column;align-items:center}
+.kids{display:flex;gap:14px;margin-top:22px;position:relative}
+.kids>div{display:flex;flex-direction:column;align-items:center;position:relative}
+.kids>div::before{content:"";position:absolute;top:-22px;height:22px;border-left:2px solid var(--ln)}
+.kids>div>em{font-style:normal;font-size:.72rem;font-weight:700;margin-bottom:3px}
+.kids>div.kb>em{color:var(--b)}.kids>div.ka>em{color:var(--a)}
+.box{min-width:50px;text-align:center;padding:5px 9px;border:2px solid var(--ln);border-radius:8px;background:var(--bg);font:700 1rem "JetBrains Mono",monospace;transition:.2s}
+.box small{display:block;font-size:.78rem;min-height:1.1em;color:var(--mut)}
+.box.g{opacity:.3;border-style:dashed}
+.box.act{border-color:var(--cur);background:var(--curs)}
+.box.done{border-color:var(--ok)}
+.box.done small{color:var(--ok)}
+.stack{display:flex;flex-direction:column;gap:8px;min-height:120px}
+.fr{border:2px solid var(--ln);border-radius:8px;padding:8px 10px;background:var(--bg)}
+.fr.top{border-color:var(--cur);background:var(--curs)}
+.fr .h{font:700 1rem "JetBrains Mono",monospace;display:flex;justify-content:space-between}
+.fr .h span{font:400 .75rem Figtree,sans-serif;color:var(--mut)}
+.sl{display:flex;gap:6px;margin-top:6px;font:.85rem "JetBrains Mono",monospace}
+.sl div{flex:1;border-radius:6px;padding:3px 7px}
+.sl .sb{background:var(--bs);color:var(--b)}.sl .sa{background:var(--as);color:var(--a)}
+.sl .w0{opacity:.55}
+.base{border-top:3px solid var(--ink);margin-top:-2px;color:var(--mut);font-size:.75rem;text-align:center;padding-top:2px}
+.msg{font-size:1.05rem;min-height:3.2em}
+.stats{display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;color:var(--mut)}
+.stats b{color:var(--ink)}
+input[type=range]{flex:1;min-width:140px}
+.log{max-height:220px;overflow:auto;font-size:.88rem}
+.log div{padding:3px 8px;border-left:3px solid transparent;color:var(--mut)}
+.log div.on{border-color:var(--cur);color:var(--ink);background:var(--curs)}
+.lg{display:flex;gap:12px;font-size:.8rem;flex-wrap:wrap;margin-top:6px}
+.lg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:var(--c)}
+</style>
+</head>
+<body>
+<div class="w">
+<h1>Recursive postfix evaluator</h1>
+<p class="sub">Step through how a postfix expression is solved from right to left, with the call stack doing the work of a stack.</p>
+
+<div class="card">
+<div class="row">
+<input type="text" id="expr" value="5 6 2 + * 12 4 / -" aria-label="Postfix expression, tokens separated by spaces" spellcheck="false">
+<button class="p" id="load">Load</button>
+<select id="pre" aria-label="Example expressions">
+<option value="5 6 2 + * 12 4 / -">Activity example</option>
+<option value="3 4 +">3 4 +</option>
+<option value="1 2 3 4 5 + + + +">Worst-case depth</option>
+<option value="1 2 + 3 + 4 +">Best-case depth</option>
+<option value="2 3 ^ 4 5 * -">With power ^</option>
+<option value="8 0 /">Division by zero</option>
+</select>
+</div>
+<div class="hint" style="margin-top:6px">Operators: + - * / ^ &nbsp;·&nbsp; separate every token with a space.</div>
+<div class="err" id="err" role="alert"></div>
+</div>
+
+<div class="card">
+<h2>Token tape: read right to left</h2>
+<div class="tape" id="tape"></div>
+</div>
+
+<div class="card">
+<div class="msg" id="msg" aria-live="polite"></div>
+<div class="row" style="margin-top:8px">
+<button id="rs">Reset</button>
+<button id="pv">Back</button>
+<button class="p" id="pl">Play</button>
+<button id="nx">Next</button>
+<input type="range" id="sc" min="0" value="0" aria-label="Step">
+<select id="sp" aria-label="Speed"><option value="1400">Slow</option><option value="800" selected>Normal</option><option value="350">Fast</option></select>
+</div>
+<div class="stats" style="margin-top:10px" id="st"></div>
+</div>
+
+<div class="grid">
+<div class="card">
+<h2>Recursion tree</h2>
+<div class="tree" id="tree"></div>
+<div class="lg"><span style="--c:var(--b)">b: right operand, solved first</span><span style="--c:var(--a)">a: left operand, solved second</span><span style="--c:var(--cur)">active call</span><span style="--c:var(--ok)">returned</span></div>
+</div>
+<div>
+<div class="card">
+<h2>Call stack (top first)</h2>
+<div class="stack" id="stack"></div>
+<div class="base">bottom</div>
+</div>
+<div class="card">
+<h2>Step log</h2>
+<div class="log" id="log"></div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+const OPS={'+':(a,b)=>a+b,'-':(a,b)=>a-b,'*':(a,b)=>a*b,'/':(a,b)=>a/b,'^':(a,b)=>Math.pow(a,b)};
+const $=id=>document.getElementById(id);
+const fmt=x=>x==null?'':String(Number(x.toFixed(6)));
+let tokens=[],steps=[],nodes=[],root=null,i=0,timer=null,maxDepth=0;
+
+function build(tk){
+  steps=[];nodes=[];const stack=[];let pos=tk.length-1;
+  const snap=(msg,cur)=>steps.push({msg,cur,stack:stack.map(f=>({...f}))});
+  function ev(pf,role){
+    if(pos<0)throw Error('An operator is missing an operand: the tokens ran out too early.');
+    const idx=pos--,tok=tk[idx],isOp=tok in OPS;
+    const n={id:nodes.length,tok,idx,isOp,role,created:steps.length,val:null};
+    nodes.push(n);
+    const f={tok,idx,isOp,b:null,a:null};
+    stack.push(f);
+    if(!isOp){
+      if(isNaN(Number(tok)))throw Error('“'+tok+'” is neither a number nor an operator (+ - * / ^).');
+      n.val=Number(tok);n.valAt=n.created;
+      snap('Read “'+tok+'” at index '+idx+'. It’s an operand, so this is the base case.',idx);
+    }else{
+      snap('Read “'+tok+'” at index '+idx+'. It’s an operator: push a frame and solve the right operand (b) first.',idx);
+      n.b=ev(f,'b');
+      n.a=ev(f,'a');
+      if(tok==='/'&&f.b===0)throw Error('Division by zero: the right operand evaluated to 0.');
+      n.val=OPS[tok](f.a,f.b);n.valAt=steps.length;
+      snap('Both operands are back. Pop b = '+fmt(f.b)+' and a = '+fmt(f.a)+', then compute '+fmt(f.a)+' '+tok+' '+fmt(f.b)+' = '+fmt(n.val)+'.',idx);
+    }
+    n.doneAt=steps.length;
+    stack.pop();
+    if(pf){
+      pf[role]=n.val;
+      const nm=role==='b'?'b (right operand)':'a (left operand)';
+      snap('Return '+fmt(n.val)+' to the “'+pf.tok+'” frame as '+nm+(role==='b'?'. Now solve its left operand (a).':'. Both operands are ready.'),idx);
+    }else snap('Return '+fmt(n.val)+' to the caller. The stack is empty: the final result is '+fmt(n.val)+'.',idx);
+    return n;
+  }
+  const r=ev(null,null);
+  if(pos!==-1)throw Error('Extra operands left over: the expression is missing an operator.');
+  return r;
+}
+
+function load(){
+  stop();$('err').textContent='';
+  const tk=$('expr').value.trim().split(/\s+/).filter(Boolean);
+  try{
+    if(!tk.length)throw Error('Enter an expression first.');
+    tokens=tk;root=build(tk);
+  }catch(e){
+    steps=[];nodes=[];root=null;tokens=tk;
+    $('err').textContent=e.message;
+  }
+  maxDepth=steps.reduce((m,s)=>Math.max(m,s.stack.length),0);
+  $('sc').max=steps.length;i=0;render();
+}
+
+function treeHTML(n,k){
+  const st=k>=n.doneAt?'done':k>=n.created?'act':'g';
+  const cls=k>=n.doneAt?'done':(k>=n.created?'act':'g');
+  const v=k>=n.valAt?fmt(n.val):'';
+  let h='<div class="nd"><div class="box '+cls+'">'+n.tok+'<small>'+(v!==''?'= '+v:'')+'</small></div>';
+  if(n.isOp&&n.a&&n.b){
+    h+='<div class="kids"><div class="ka"><em>a</em>'+treeHTML(n.a,k)+'</div><div class="kb"><em>b</em>'+treeHTML(n.b,k)+'</div></div>';
+  }
+  return h+'</div>';
+}
+
+function render(){
+  const k=i-1,s=steps[k];
+  const tp=$('tape');tp.innerHTML='';
+  tokens.forEach((t,x)=>{
+    const nd=nodes.find(n=>n.idx===x);
+    let c='tk';
+    if(nd&&k>=nd.created)c+=(s&&s.cur===x)?' cur':' read';
+    tp.insertAdjacentHTML('beforeend','<div class="'+c+'"><b>'+t+'</b><i>index '+x+'</i></div>');
+  });
+  const cur=tp.querySelector('.cur');if(cur)cur.scrollIntoView({block:'nearest',inline:'center'});
+  $('msg').textContent=!steps.length?'':(s?s.msg:'Ready. Evaluation starts from the last token, index '+(tokens.length-1)+'. Press Next.');
+  $('tree').innerHTML=root?treeHTML(root,k):'';
+  const stk=$('stack');stk.innerHTML='';
+  if(s&&s.stack.length){
+    s.stack.slice().reverse().forEach((f,x)=>{
+      const top=x===0;
+      let h='<div class="fr'+(top?' top':'')+'"><div class="h"><div>'+f.tok+'</div><span>'+(f.isOp?'operator':'operand')+' · index '+f.idx+'</span></div>';
+      if(f.isOp)h+='<div class="sl"><div class="sb'+(f.b==null?' w0':'')+'">b = '+(f.b==null?'waiting':fmt(f.b))+'</div><div class="sa'+(f.a==null?' w0':'')+'">a = '+(f.a==null?'waiting':fmt(f.a))+'</div></div>';
+      else h+='<div class="sl"><div class="sa">returns '+f.tok+'</div></div>';
+      stk.insertAdjacentHTML('beforeend',h+'</div>');
+    });
+  }else stk.innerHTML='<div class="hint">'+(steps.length?(s?'Empty: evaluation finished.':'Empty: nothing called yet.'):'')+'</div>';
+  const lg=$('log');lg.innerHTML='';
+  steps.slice(0,i).forEach((st,x)=>lg.insertAdjacentHTML('beforeend','<div class="'+(x===k?'on':'')+'">'+(x+1)+'. '+st.msg+'</div>'));
+  const on=lg.querySelector('.on');if(on)on.scrollIntoView({block:'nearest'});
+  const fin=i===steps.length&&steps.length;
+  $('st').innerHTML=steps.length?'<span>Step <b>'+i+'</b> of <b>'+steps.length+'</b></span><span>Stack depth <b>'+(s?s.stack.length:0)+'</b></span><span>Max depth <b>'+maxDepth+'</b></span><span>Tokens <b>'+tokens.length+'</b></span>'+(fin?'<span>Result <b>'+fmt(root.val)+'</b></span>':''):'';
+  $('sc').value=i;
+  $('pv').disabled=i===0;$('rs').disabled=i===0;
+  $('nx').disabled=i>=steps.length;$('pl').disabled=!steps.length;
+  $('pl').textContent=timer?'Pause':(fin?'Replay':'Play');
+}
+function stop(){if(timer){clearInterval(timer);timer=null}}
+function play(){
+  if(timer){stop();render();return}
+  if(i>=steps.length)i=0;
+  const go=()=>{if(i<steps.length){i++;render()}else{stop();render()}};
+  go();if(i<steps.length)timer=setInterval(go,+$('sp').value);else render();
+  render();
+}
+$('load').onclick=load;
+$('expr').onkeydown=e=>{if(e.key==='Enter')load()};
+$('pre').onchange=e=>{$('expr').value=e.target.value;load()};
+$('nx').onclick=()=>{stop();if(i<steps.length)i++;render()};
+$('pv').onclick=()=>{stop();if(i>0)i--;render()};
+$('rs').onclick=()=>{stop();i=0;render()};
+$('pl').onclick=play;
+$('sc').oninput=e=>{stop();i=+e.target.value;render()};
+$('sp').onchange=()=>{if(timer){stop();play()}};
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'&&e.target.type==='text')return;
+  if(e.key==='ArrowRight'){$('nx').click()}
+  if(e.key==='ArrowLeft'){$('pv').click()}
+});
+load();
+</script>
+</body>
+</html>

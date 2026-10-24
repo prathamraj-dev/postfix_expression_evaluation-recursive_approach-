@@ -114,6 +114,3 @@ For an expression with *n* tokens:
 | `1 2 3 4 5 + + + +` | `1 + (2 + (3 + (4 + 5)))` | 15 |
 | `8 0 /` | `8 / 0` | error: division by zero |
 
-## License
-
-Add your license of choice here (for example, MIT).
